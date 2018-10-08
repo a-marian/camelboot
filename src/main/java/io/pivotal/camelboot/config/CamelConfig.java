@@ -28,18 +28,6 @@ public class CamelConfig {
         return mapping;
     }
 
-    /**
-     * Bind the Hystrix servlet to /hystrix.stream
-     */
-    @Bean
-    public ServletRegistrationBean hystrixServletRegistrationBean() {
-        ServletRegistrationBean mapping = new ServletRegistrationBean();
-        mapping.setServlet(new HystrixEventStreamServlet());
-        mapping.addUrlMappings("/hystrix.stream");
-        mapping.setName("HystrixEventStreamServlet");
-
-        return mapping;
-    }
 
 
 }

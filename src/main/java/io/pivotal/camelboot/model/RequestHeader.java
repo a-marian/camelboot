@@ -1,5 +1,6 @@
 package io.pivotal.camelboot.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -12,23 +13,13 @@ import io.swagger.annotations.ApiModelProperty;
 public class RequestHeader {
 
 
-    @ApiModelProperty(value = "Channel", required = true)
-    private String channel;
+    String channel;
 
-    @ApiModelProperty(value = "Terminal", required = true)
-    private String terminal;
+    String terminal;
 
-    @ApiModelProperty(value = "Client ID", required = true)
-    private String clienteId;
+    @JsonProperty(value = "user_id", required = true)
+    String userId;
 
-    public  RequestHeader() {
-    }
-
-    public RequestHeader(String channel, String terminal, String clienteId){
-        this.channel = channel;
-        this.terminal = terminal;
-        this.clienteId = clienteId;
-    }
 
     public String getChannel() {
         return channel;
@@ -46,11 +37,11 @@ public class RequestHeader {
         this.terminal = terminal;
     }
 
-    public String getClienteId() {
-        return clienteId;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setClienteId(String clienteId) {
-        this.clienteId = clienteId;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

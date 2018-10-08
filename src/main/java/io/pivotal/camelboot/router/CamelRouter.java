@@ -1,20 +1,24 @@
 package io.pivotal.camelboot.router;
 
 
+import io.pivotal.camelboot.exception.GlobalException;
+import io.pivotal.camelboot.model.FinalResponseDTO;
+import io.pivotal.camelboot.model.FirstRequest;
+import io.pivotal.camelboot.model.RequestBody;
+import io.pivotal.camelboot.model.SnippetResponseDTO;
 import io.pivotal.camelboot.processor.FirstRequestProcessor;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 
+import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.model.rest.RestBindingMode;
 
-import org.apache.camel.util.toolbox.AggregationStrategies;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 
-
-import java.util.LinkedList;
-import java.util.List;
 
 
 @Component
@@ -29,6 +33,7 @@ public class CamelRouter extends RouteBuilder {
 
         FirstRequestProcessor first = new FirstRequestProcessor();
 
+
         /*
          * Common rest configuration
          */
@@ -36,7 +41,6 @@ public class CamelRouter extends RouteBuilder {
         restConfiguration()
                 .host(serviceHost)
                 .bindingMode(RestBindingMode.json)
-                .contextPath("/api")
                 .apiContextPath("/doc")
                 .apiProperty("api.title", "API-Gateway  REST API")
                 .apiProperty("api.description", "Operations that can be invoked in the api-gateway")
@@ -51,36 +55,47 @@ public class CamelRouter extends RouteBuilder {
 
         // full path: /api/gateway
         rest().post("/gateway")
-                .description("Invoke all microservices in parallel")
-                .outTypeList(String.class)
-                .apiDocs(true)
-                .responseMessage().code(200).message("OK").endResponseMessage()
+                .consumes(MediaType.APPLICATION_JSON_VALUE).produces(MediaType.APPLICATION_JSON_VALUE)
+                .type(FirstRequest.class).outType(FinalResponseDTO.class)
                 .route()
-                .multicast(AggregationStrategies.flexible().accumulateInCollection(LinkedList.class))
-                .parallelProcessing()
-                .to("direct:aloha")
+                .bean(FirstRequestProcessor.class, "firtsprocess")
+                .to("http:adminhost?bridgeEndpoint=false")
+                .log("regresando de consulta de hobby")
+                .setHeader("CamelJacksonUnmarshalType", simple(SnippetResponseDTO.class.getName()))
+                .unmarshal().json(JsonLibrary.Jackson, SnippetResponseDTO.class)
 
-                .end()
-                .transform().body(List.class, list -> list)
-                .setHeader("Access-Control-Allow-Credentials", constant("true"))
-                .setHeader("Access-Control-Allow-Origin", header("Origin"));
+                .bean(FirstRequestProcessor.class, "secondprocess")
+                .choice()
+
+                    .when(header("hobby").isEqualTo("reading"))
+                        .routeId("bookSaving")
+                            .log("Starting to save book")
+                            .setHeader(Exchange.HTTP_URI, constant("http://{{ADMIN_SERVICE_HOST}}:{{ADMIN_SERVICE_PORT}}/books"))
+                            .convertBodyTo(FirstRequest.class)
+                            .marshal().json(JsonLibrary.Jackson, FirstRequest.class)
+                            .to("http:bookhost?bridgeEndpoint=false")
+                            .setHeader("CamelJacksonUnmarshalType", simple(RequestBody.class.getName()))
+                            .unmarshal().json(JsonLibrary.Jackson, RequestBody.class)
+                            .log("regresando de guardar libro")
 
 
-        from("direct:aloha")
-                .id("aloha")
-                .removeHeaders("accept*")
-                .setHeader(Exchange.HTTP_METHOD, constant("POST"))
-                .setHeader(Exchange.ACCEPT_CONTENT_TYPE, constant("text/plain"))
-                .process(first)
-                 .hystrix()
-                .hystrixConfiguration().executionTimeoutInMilliseconds(1000).circuitBreakerRequestVolumeThreshold(5).end()
-                .id("aloha")
-                .groupKey("http://localhost:8090/")
-                .to("http4:localhost:8090/snippets/?bridgeEndpoint=true&connectionClose=true")
-                .convertBodyTo(String.class)
-                .onFallback()
-                .transform().constant("Aloha response (fallback)")
-                .end();
+                    .when(header("hobby").isEqualTo("watching"))
+                        .routeId("filmsSaving")
+                            .log("Starting to save film")
+                            .setHeader(Exchange.HTTP_URI, constant("http://{{ADMIN_SERVICE_HOST}}:{{ADMIN_SERVICE_PORT}}/films") )
+                            .convertBodyTo(FirstRequest.class)
+                            .marshal().json(JsonLibrary.Jackson, FirstRequest.class)
+                            .to("http:filmhost?bridgeEndpoint=false")
+                            .setHeader("CamelJacksonUnmarshalType", simple(RequestBody.class.getName()))
+                            .unmarshal().json(JsonLibrary.Jackson, RequestBody.class)
+                            .log("Film saved {body}")
+
+
+                .endRest();
+
+
+
+
 
 
 
