@@ -1,0 +1,13 @@
+{
+  "header": {
+    "channel": "web",
+    "terminal": "localhost",
+    "user_id": "1238"
+  },
+  "body": {
+    "id": "1018",
+    "name": "le petit prince",
+    "category": "drama"
+
+  }
+}

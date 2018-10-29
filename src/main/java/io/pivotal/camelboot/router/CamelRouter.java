@@ -40,7 +40,9 @@ public class CamelRouter extends RouteBuilder {
 
         restConfiguration()
                 .host(serviceHost)
+                .component("servlet")
                 .bindingMode(RestBindingMode.json)
+                .apiContextPath("/api-docs")
                 .apiContextPath("/doc")
                 .apiProperty("api.title", "API-Gateway  REST API")
                 .apiProperty("api.description", "Operations that can be invoked in the api-gateway")
@@ -54,11 +56,13 @@ public class CamelRouter extends RouteBuilder {
          */
 
         // full path: /api/gateway
-        rest().post("/gateway")
+        rest("/")
+                .post("gateway")
                 .consumes(MediaType.APPLICATION_JSON_VALUE).produces(MediaType.APPLICATION_JSON_VALUE)
                 .type(FirstRequest.class).outType(FinalResponseDTO.class)
-                .route()
-                .bean(FirstRequestProcessor.class, "firtsprocess")
+                .route().id("sendRoute")
+
+                .bean(FirstRequestProcessor.class, "firtsprocess").id("primerproceso")
                 .to("http:adminhost?bridgeEndpoint=false")
                 .log("regresando de consulta de hobby")
                 .setHeader("CamelJacksonUnmarshalType", simple(SnippetResponseDTO.class.getName()))
